@@ -1,7 +1,7 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "Model Control Interface",
+  "name": "Actelos",
   "colors": {
     "primary": "#a995c9",
     "light": "#8a79ab",
@@ -40,27 +40,7 @@
                 "group": "Modules",
                 "pages": [
                   "server/module-overview",
-                  "server/module-access-and-control",
-                  {
-                    "group": "Interceptor Modules",
-                    "pages": []
-                  },
-                  {
-                    "group": "Hook Modules",
-                    "pages": []
-                  },
-                  {
-                    "group": "Sandbox Modules",
-                    "pages": []
-                  },
-                  {
-                    "group": "Language Modules",
-                    "pages": []
-                  },
-                  {
-                    "group": "Proxy Modules",
-                    "pages": []
-                  }
+                  "server/module-access-and-control"
                 ]
               },
               {
@@ -72,27 +52,13 @@
                 ]
               }
             ]
-          },
-          {
-            "tab": "API Reference",
-            "versions": [
-              {
-                "version": "1.0.0",
-                "default": true,
-                "openapi": "https://modelcontrolinterface.mintlify.app/openapi.json"
-              }
-            ]
           }
         ]
       },
       {
         "anchor": "Blog",
         "icon": "newspaper",
-        "href": "https://modelcontrolinterface.github.io/blog/"
-      },
-      {
-        "anchor": "Lab",
-        "icon": "test-tube-diagonal"
+        "href": "https://actelos.github.io/blog/"
       }
     ]
   },
@@ -121,7 +87,7 @@
       "github": "https://github.com/modelcontrolinterface"
     }
   },
-  "description": "MCI (Model Control Interface) is an open-source network of software that enables fast, reliable, secure, and efficient integration between LLM applications and external services.",
+  "description": "Actelos is an open AI lab focusing of giving models efficient and reliable agency.",
   "seo": {
     "indexing": "all"
   },
