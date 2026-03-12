@@ -100,8 +100,7 @@
   "api": {
     "playground": {
       "display": "interactive"
-    },
-    "openapi": "/openapi.json"
+    }
   },
   "background": {
     "decoration": "grid",
