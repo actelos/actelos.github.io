@@ -1,10 +1,8 @@
 ---
 import { getCollection } from "astro:content";
 
-import Link from "@components/Link.astro";
 import BlogCard from "@components/BlogCard.astro";
 import PageLayout from "@layouts/PageLayout.astro";
-import Container from "@components/Container.astro";
 import NewsletterForm from "@components/NewsletterForm.astro";
 
 const blog = (await getCollection("blog"))
@@ -23,7 +21,7 @@ const blog = (await getCollection("blog"))
           target="_blank"
           class="font-bold underline text-primary"
         >
-        Read More...
+          Read More...
         </a>
       </p>
       <p>

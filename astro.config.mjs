@@ -14,7 +14,7 @@ import rehypeAutolinkHeadings from "rehype-autolink-headings";
 
 export default defineConfig({
   site: "https://actelos.github.io",
-  base: "/blog",
+  base: "/",
   image: {
     service: passthroughImageService(),
   },

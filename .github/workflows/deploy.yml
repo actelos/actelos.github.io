@@ -16,42 +16,8 @@ jobs:
     steps:
       - name: Checkout your repository using git
         uses: actions/checkout@v5
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-          cache-dependency-path: blog/pnpm-lock.yaml
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10
-
-      - name: Install and build blog
-        run: |
-          pnpm --dir blog install --frozen-lockfile
-          pnpm --dir blog build
-
-      - name: Stage site artifact
-        run: |
-          mkdir -p _site/blog
-          cp -a blog/dist/. _site/blog/
-
-          if [ -f index.html ]; then
-            cp index.html _site/index.html
-          fi
-
-          if [ -d docs/dist ]; then
-            mkdir -p _site/docs
-            cp -a docs/dist/. _site/docs/
-          fi
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: _site
+      - name: Install, build, and upload your site
+        uses: withastro/action@v5
 
   deploy:
     needs: build

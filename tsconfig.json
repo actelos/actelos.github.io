@@ -3,6 +3,7 @@
   "exclude": ["dist"],
   "compilerOptions": {
     "strictNullChecks": true,
+    "module": "ESNext",
     "baseUrl": ".",
     "paths": {
       "@*": ["./src/*"]
