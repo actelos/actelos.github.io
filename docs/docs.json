@@ -27,7 +27,10 @@
               },
               {
                 "group": "About MCI",
-                "pages": ["server/architecture", "server/transport"]
+                "pages": [
+                  "server/architecture",
+                  "server/transport"
+                ]
               },
               {
                 "group": "Processes",
@@ -52,6 +55,9 @@
                 ]
               }
             ]
+          },
+          {
+            "tab": "Specification"
           }
         ]
       },
