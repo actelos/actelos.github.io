@@ -1,0 +1,518 @@
+---
+title: "Client"
+description: "How clients should interact with MCI"
+---
+
+# MCI Client Specification
+
+**Version:** 0.3.0-draft\
+**Status:** Draft\
+**Component:** Client
+
+---
+
+## Table of Contents
+
+ 1. [Overview](https://claude.ai/chat/1b705562-9d75-4ad4-afe6-fad44ac15bf8#overview)
+ 2. [Responsibilities](https://claude.ai/chat/1b705562-9d75-4ad4-afe6-fad44ac15bf8#responsibilities)
+ 3. [Intent Extraction](https://claude.ai/chat/1b705562-9d75-4ad4-afe6-fad44ac15bf8#intent-extraction)
+ 4. [Core Concepts](https://claude.ai/chat/1b705562-9d75-4ad4-afe6-fad44ac15bf8#core-concepts)
+ 5. [Templates](https://claude.ai/chat/1b705562-9d75-4ad4-afe6-fad44ac15bf8#templates)
+ 6. [Processes](https://claude.ai/chat/1b705562-9d75-4ad4-afe6-fad44ac15bf8#processes)
+ 7. [Process Lifecycle](https://claude.ai/chat/1b705562-9d75-4ad4-afe6-fad44ac15bf8#process-lifecycle)
+ 8. [Signals](https://claude.ai/chat/1b705562-9d75-4ad4-afe6-fad44ac15bf8#signals)
+ 9. [Querying Outputs](https://claude.ai/chat/1b705562-9d75-4ad4-afe6-fad44ac15bf8#querying-outputs)
+10. [Client Implementation Notes](https://claude.ai/chat/1b705562-9d75-4ad4-afe6-fad44ac15bf8#client-implementation-notes)
+
+---
+
+## Overview
+
+The MCI client is the layer that wraps a large language model (LLM). Its job is to bridge the model's expressed intent and the MCI server that executes it. The client observes model output, extracts executable intent from it, submits that intent to the MCI server, and feeds execution results back to the model.
+
+The client does not execute code itself. It is purely a translation and communication layer.
+
+---
+
+## Responsibilities
+
+The client has three core responsibilities:
+
+**1. Intent Extraction** The client monitors model output and detects when the model is expressing an intent to execute code. How this detection works is implementation-defined, but the extracted intent must include the code to be executed and the metadata that describes it.
+
+**2. Request Submission** The client creates a template via `POST /templates`, then immediately creates a process against that template via `POST /processes`. The client is responsible for correctly formatting both requests.
+
+**3. Result Retrieval and Relay** After submission, the client polls the MCI server for process status and output. Once execution completes, the client retrieves the results and presents them back to the model. How results are formatted and relayed to the model is implementation-defined.
+
+---
+
+## Intent Extraction
+
+How a client detects model intent is left to the implementer. The MCI project recommends the following convention, but it is not required.
+
+### Recommended Convention: Annotated Code Blocks
+
+The model outputs a fenced code block with three parts on the opening line:
+
+````text
+```<language> mci <key=value pairs>
+<code>
+````
+
+````text
+
+- `<language>` is any language identifier (e.g. `ts`, `python`, `js`)
+- `mci` is the intent marker — its presence signals that this block is an MCI execution request
+- `<key=value pairs>` are the template metadata fields, space-separated
+
+**Example:**
+
+~~~
+```ts mci name=fetch-user description="Fetch a user by ID" environment=deno
+const res = await fetch("https://api.example.com/users/1");
+const user = await res.json();
+dispatch({ output: user });
+````
+
+````text
+
+When a client sees the `mci` keyword after the language identifier, it treats the block as an execution request. The key-value pairs are parsed as template metadata. The body of the block is the code.
+
+### Notes for Implementers
+
+- Clients may use any other mechanism for intent extraction — XML tags, structured JSON output, a dedicated system prompt protocol, etc.
+- The extraction mechanism does not affect how requests are submitted to MCI. Only the final request shapes matter.
+- Clients should handle malformed or incomplete metadata gracefully, either by rejecting the block with an error message to the model, or by applying defaults where applicable.
+
+---
+
+## Core Concepts
+
+MCI separates the definition of code from its execution. These are two distinct concerns managed by two distinct resources.
+
+### Template
+
+A template is a definition — code and everything that describes it. Templates are inert. Creating a template does not execute anything. A template can exist indefinitely without ever being executed.
+
+Templates are **mutable**. The code, environment, name, and description of a template can be updated at any time via `PATCH /templates/:tid`. The `lint` and `save` flags are **creation-only** — they are set when the template is created and cannot be changed afterwards. If you need different lint or save behaviour, create a new template.
+
+### Process
+
+A process is an execution request against a template. Creating a process queues it for execution immediately. A process carries the execution-specific configuration (environment config, timeout, retries) and owns the execution result (state, status, outputs).
+
+A template can be the basis for multiple processes over time. A process always references exactly one template.
+
+### The Snapshot Contract
+
+> **This is the most important invariant in MCI.**
+>
+> When a process is created, it takes a **snapshot** of the template at that exact moment — the code, environment, name, and description are copied into the process and stored independently. The process never references the live template again after this point.
+>
+> This means:
+> - Patching a template does not affect any process that was already created from it
+> - Deleting a template does not affect any process that was already created from it
+> - A running process will always complete against the code it was started with, regardless of what happens to its template
+>
+> Every process is a fully self-contained execution record. Its relationship to a template is historical — it records which template it came from (via TID) but does not depend on that template continuing to exist or remain unchanged.
+
+### Identifiers
+
+- **TID** — Template ID. Assigned when a template is created via `POST /templates`
+- **PID** — Process ID. Assigned when a process is created via `POST /processes`
+
+---
+
+## Templates
+
+Templates live at `/templates`. They support listing, creation, retrieval, partial update, and deletion.
+
+---
+
+### `GET /templates`
+
+List all templates available in the current session, including persistent templates.
+
+**Query parameters (all optional):**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `name` | string | Filter by name (exact match) |
+| `environment` | string | Filter by environment prefix |
+| `save` | boolean | Filter by persistence (`true` = persistent only, `false` = session-scoped only) |
+
+**Response:**
+
+```json
+{
+  "templates": [
+    {
+      "tid": "string",
+      "name": "string | null",
+      "description": "string | null",
+      "environment": "string",
+      "lint": "boolean",
+      "save": "boolean",
+      "created_at": "ISO 8601 timestamp"
+    }
+  ]
+}
+```
+
+Note: `code` is not included in list responses. Use `GET /templates/:tid` to retrieve the full template including code.
+
+---
+
+### `POST /templates`
+
+Create a new template. If `lint` is true, the code is linted before the template is created. If linting fails, the template is not created and the lint output is returned instead.
+
+**Request body:**
+
+```json
+{
+  "code": "string (required)",
+  "environment": "string (required)",
+  "name": "string (optional)",
+  "description": "string (optional)",
+  "lint": "boolean (default: false)",
+  "save": "boolean (default: false)"
+}
+```
+
+**Fields:**
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `code` | string | yes | — | The code to be executed when a process is created from this template |
+| `environment` | string | yes | — | The target sandbox environment. Supports prefix matching (e.g. `python` matches all Python environments, `python3` matches only Python 3 environments) |
+| `name` | string | no | — | Human-readable name for querying and identification |
+| `description` | string | no | — | Human-readable description for querying and identification |
+| `lint` | boolean | no | `false` | **Creation-only.** If true, the code is linted before the template is saved. Lint failure prevents creation and returns lint output to the client. Cannot be changed after creation |
+| `save` | boolean | no | `false` | **Creation-only.** If false, the template is session-scoped and lost when the server session ends. If true, the template persists across server restarts. Cannot be changed after creation |
+
+**Response (success):**
+
+```json
+{
+  "tid": "string",
+  "name": "string | null"
+}
+```
+
+**Response (lint failure):**
+
+```json
+{
+  "error": "lint_failed",
+  "output": "string"
+}
+```
+
+---
+
+### `GET /templates/:tid`
+
+Retrieve a template's full definition including code.
+
+**Response:**
+
+```json
+{
+  "tid": "string",
+  "name": "string | null",
+  "description": "string | null",
+  "code": "string",
+  "environment": "string",
+  "lint": "boolean",
+  "save": "boolean",
+  "created_at": "ISO 8601 timestamp"
+}
+```
+
+---
+
+### `PATCH /templates/:tid`
+
+Update a template. Supports partial updates — only include the fields you want to change.
+
+Only `code`, `environment`, `name`, and `description` may be updated. The `lint` and `save` flags are creation-only and cannot be patched. If the template was created with `lint: true`, any patch that includes a `code` update will lint the new code before applying the update. If linting fails, the template is not updated.
+
+Updates affect future processes only. Existing processes are snapshots and are completely unaffected by template updates — including patches to `environment` or `code` while a process is actively running.
+
+**Request body (all fields optional):**
+
+```json
+{
+  "code": "string",
+  "environment": "string",
+  "name": "string",
+  "description": "string"
+}
+```
+
+**Response (success):** Updated template object (same shape as `GET /templates/:tid`).
+
+**Response (lint failure):**
+
+```json
+{
+  "error": "lint_failed",
+  "output": "string"
+}
+```
+
+---
+
+### `DELETE /templates/:tid`
+
+Delete a template. If the template is persistent (`save=true`), it is also removed from persistent storage. Existing processes created from this template are completely unaffected — they hold independent snapshots of the template's code and metadata.
+
+**Response:** `204 No Content`
+
+---
+
+## Processes
+
+Processes live at `/processes`. Creating a process queues it for execution immediately against a referenced template.
+
+---
+
+### `GET /processes`
+
+List all processes in the current session.
+
+**Query parameters (all optional):**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `tid` | string | Filter by template ID |
+| `state` | string | Filter by state (`queued`, `running`, `idle`) |
+| `status` | string | Filter by status (`success`, `failed`) |
+
+**Response:**
+
+```json
+{
+  "processes": [
+    {
+      "pid": "string",
+      "tid": "string",
+      "state": "queued | running | idle",
+      "status": "success | failed | null",
+      "created_at": "ISO 8601 timestamp"
+    }
+  ]
+}
+```
+
+---
+
+### `POST /processes`
+
+Create a new process. The process is queued for execution immediately upon creation.
+
+**Request body:**
+
+```json
+{
+  "tid": "string (required)",
+  "envconf": "object (default: {})",
+  "timeout": "number | null (default: null)",
+  "retries": "number | null (default: 3)"
+}
+```
+
+**Fields:**
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `tid` | string | yes | — | The TID of the template to execute |
+| `envconf` | object | no | `{}` | Arbitrary key-value configuration passed to the sandbox environment, such as memory limits or thread constraints |
+| `timeout` | number/null | no | `null` | Execution timeout in milliseconds. `null` means no timeout |
+| `retries` | number/null | no | `3` | Number of retry attempts on failure. `null` means no retries |
+
+**Response:**
+
+```json
+{
+  "pid": "string",
+  "tid": "string"
+}
+```
+
+---
+
+### `GET /processes/:pid`
+
+Retrieve the current state and status of a process.
+
+**Response:**
+
+```json
+{
+  "pid": "string",
+  "tid": "string",
+  "state": "queued | running | idle",
+  "status": "success | failed | null",
+  "envconf": "object",
+  "timeout": "number | null",
+  "retries": "number | null",
+  "created_at": "ISO 8601 timestamp"
+}
+```
+
+`status` is `null` while the process has not yet completed.
+
+---
+
+### `GET /processes/:pid/outputs`
+
+Retrieve all outputs for a process.
+
+**Response:**
+
+```json
+{
+  "stdout": "string",
+  "stderr": "string",
+  "dispatches": []
+}
+```
+
+---
+
+### `GET /processes/:pid/stdout`
+
+Retrieve only stdout for a process.
+
+**Response:** `text/plain`
+
+---
+
+### `GET /processes/:pid/stderr`
+
+Retrieve only stderr for a process.
+
+**Response:** `text/plain`
+
+---
+
+### `POST /processes/:pid/signals/:signal`
+
+Send a signal to a process. See [Signals](#signals) for valid signal names and constraints.
+
+**Request body:** `{}` (may be empty unless the signal requires a body)
+
+**Response:** Signal-dependent. See Signals section.
+
+---
+
+## Process Lifecycle
+
+### States
+
+A process is always in one of three states:
+
+| State | Meaning |
+|---|---|
+| `queued` | Waiting to run. Created and scheduled, but blocked on sandbox availability |
+| `running` | Actively executing |
+| `idle` | Not running. Execution has completed or the process was killed |
+
+State transitions follow this path:
+
+```
+queued → running → idle
+```
+
+A process begins in `queued` the moment it is created. Once it reaches `idle`, it does not transition again. To run the same template again, create a new process.
+
+### Status
+
+Status records the outcome of a completed execution. It is only set once a process has finished.
+
+| Status | Meaning |
+|---|---|
+| `null` | Process has not yet completed (queued or running) |
+| `success` | Process completed without error |
+| `failed` | Process encountered an error or was killed |
+
+### Distinguishing Process Phases
+
+The combination of state and status fully describes where a process is in its lifecycle:
+
+| State | Status | Phase |
+|---|---|---|
+| `queued` | `null` | Waiting for sandbox |
+| `running` | `null` | Actively executing |
+| `idle` | `success` | Completed successfully |
+| `idle` | `failed` | Completed with failure or was killed |
+
+---
+
+## Signals
+
+Signals are sent to processes via `POST /processes/:pid/signals/:signal`.
+
+Signals are never sent to templates.
+
+---
+
+### `kill`
+
+Stops a process that is currently running or queued. The process transitions to `idle` with status `failed`.
+
+**Valid states:** `running`, `queued`
+
+**Request body:** `{}`
+
+**Response:**
+
+```json
+{
+  "pid": "string",
+  "state": "idle",
+  "status": "failed"
+}
+```
+
+---
+
+## Querying Outputs
+
+Outputs are scoped to processes. They do not require execution to be complete — partial stdout and stderr may be available while a process is still running.
+
+| Endpoint | Returns |
+|---|---|
+| `GET /processes/:pid/outputs` | All outputs as a structured object |
+| `GET /processes/:pid/stdout` | Standard output as plain text |
+| `GET /processes/:pid/stderr` | Standard error as plain text |
+
+Outputs are cache-managed alongside the process and evicted together. If long-term output retention is needed, the client is responsible for reading and storing outputs before eviction.
+
+---
+
+## Future Considerations
+
+The following are intentionally out of scope for this version but are worth tracking for a future revision.
+
+**Snapshot inspection.** It would be useful for clients to query the exact code and metadata that a process was created with, independently of whatever the source template currently looks like. A `GET /processes/:pid/snapshot` endpoint would serve this purpose. This is not included in v0.3 but is a natural addition.
+
+---
+
+## Client Implementation Notes
+
+The following are not constraints of this specification but guidance for implementers.
+
+**The client owns both requests.** When the model expresses intent, the client is responsible for making two sequential requests: first `POST /templates` to register the code, then `POST /processes` to queue its execution. These are always two separate calls.
+
+**Template reuse is the client's decision.** Nothing prevents a client from caching TIDs and reusing or updating a previously created template rather than creating a new one every time. Whether to do this — and how to decide when templates are equivalent — is an implementation concern not covered by this spec.
+
+**Result relay is implementation-defined.** How the client presents process outputs back to the model — whether inline, as a message, as a tool result, or otherwise — is left to the implementer.
+
+**Polling is the v1 pattern.** The client should poll `GET /processes/:pid` until `state` is `idle` and `status` is non-null, then retrieve outputs. Streaming and webhooks are not part of this version.
+
+**Environment resolution is the client's responsibility.** The `environment` field on a template must be populated by the client. When using the recommended code block convention, the language identifier is the natural source for this value.
+
+**Session-scoped templates are lost on server restart.** If the client needs templates to survive restarts, it must set `save=true` at creation time. This flag cannot be changed after creation. Processes created from a session-scoped template that has since been lost are unaffected — they hold independent snapshots.
+````

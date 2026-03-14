@@ -27,10 +27,10 @@ How a client detects model intent is left to the implementer. The MCI project re
 
 The model outputs a fenced code block with three parts on the opening line:
 
-~~~
+~~~text
 ```<language> mci <key=value pairs>
 <code>
-```
+````
 ~~~
 
 - `<language>` is any language identifier (e.g. `ts`, `python`, `js`)
@@ -39,13 +39,12 @@ The model outputs a fenced code block with three parts on the opening line:
 
 **Example:**
 
-~~~
-```ts mci name=fetch-user description="Fetch a user by ID" environment=deno
+```ts mci name=fetch-user description="Fetch a user by ID"
 const res = await fetch("https://api.example.com/users/1");
 const user = await res.json();
-output(user);
-```
-~~~
+
+dispatch({ output: user });
+`````
 
 When a client sees the `mci` keyword after the language identifier, it treats the block as an execution request. The key-value pairs are parsed as template metadata. The body of the block is the code.
 
@@ -121,7 +120,7 @@ interface ListTemplatesResponse {
     updated_at: string // ISO 8601
   }[]
 }
-```
+`````
 
 `code` is not included in list responses. Use `GET /templates/:tid` to retrieve the full template including code.
 
@@ -146,14 +145,14 @@ interface CreateTemplateRequest {
 
 **Fields:**
 
-| Field | Required | Default | Description |
-|---|---|---|---|
-| `code` | yes | — | The code to be executed when a process is created from this template |
-| `environment` | yes | — | The target sandbox environment. Supports prefix matching (e.g. `python` matches all Python environments, `python3` matches only Python 3 environments) |
-| `name` | no | — | Human-readable name for querying and identification |
-| `description` | no | — | Human-readable description for querying and identification |
-| `lint` | no | `false` | **Creation-only.** If true, code is linted before saving. Lint failure prevents creation and returns lint output. Cannot be changed after creation |
-| `save` | no | `false` | **Creation-only.** If false, the template is session-scoped. If true, it persists across server restarts. Cannot be changed after creation |
+| Field         | Required | Default | Description                                                                                                                                            |
+| ------------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `code`        | yes      | —       | The code to be executed when a process is created from this template                                                                                   |
+| `environment` | yes      | —       | The target sandbox environment. Supports prefix matching (e.g. `python` matches all Python environments, `python3` matches only Python 3 environments) |
+| `name`        | no       | —       | Human-readable name for querying and identification                                                                                                    |
+| `description` | no       | —       | Human-readable description for querying and identification                                                                                             |
+| `lint`        | no       | `false` | **Creation-only.** If true, code is linted before saving. Lint failure prevents creation and returns lint output. Cannot be changed after creation     |
+| `save`        | no       | `false` | **Creation-only.** If false, the template is session-scoped. If true, it persists across server restarts. Cannot be changed after creation             |
 
 **Response (success):**
 
@@ -249,11 +248,11 @@ List all processes in the current session.
 
 **Query parameters (all optional):**
 
-| Parameter | Type | Description |
-|---|---|---|
-| `tid` | string | Filter by template ID |
-| `state` | string | Filter by state (`queued`, `running`, `idle`) |
-| `status` | string | Filter by status (`success`, `failed`) |
+| Parameter | Type   | Description                                   |
+| --------- | ------ | --------------------------------------------- |
+| `tid`     | string | Filter by template ID                         |
+| `state`   | string | Filter by state (`queued`, `running`, `idle`) |
+| `status`  | string | Filter by status (`success`, `failed`)        |
 
 **Response:**
 
@@ -288,12 +287,12 @@ interface CreateProcessRequest {
 
 **Fields:**
 
-| Field | Required | Default | Description |
-|---|---|---|---|
-| `tid` | yes | — | The TID of the template to execute |
-| `envconf` | no | `{}` | Arbitrary key-value configuration passed to the sandbox, such as memory limits or thread constraints |
-| `timeout` | no | `null` | Execution timeout in milliseconds. `null` means no timeout |
-| `retries` | no | `3` | Number of retry attempts on failure. `null` means no retries |
+| Field     | Required | Default | Description                                                                                          |
+| --------- | -------- | ------- | ---------------------------------------------------------------------------------------------------- |
+| `tid`     | yes      | —       | The TID of the template to execute                                                                   |
+| `envconf` | no       | `{}`    | Arbitrary key-value configuration passed to the sandbox, such as memory limits or thread constraints |
+| `timeout` | no       | `null`  | Execution timeout in milliseconds. `null` means no timeout                                           |
+| `retries` | no       | `3`     | Number of retry attempts on failure. `null` means no retries                                         |
 
 **Response:**
 
@@ -343,15 +342,15 @@ Send a signal to a process. See the Signals section for valid signal names and c
 
 A process moves through three states:
 
-| State | Meaning |
-|---|---|
-| `queued` | Waiting to run. Scheduled but blocked on sandbox availability |
-| `running` | Actively executing |
-| `idle` | Not running. Execution has completed or the process was killed |
+| State     | Meaning                                                        |
+| --------- | -------------------------------------------------------------- |
+| `queued`  | Waiting to run. Scheduled but blocked on sandbox availability  |
+| `running` | Actively executing                                             |
+| `idle`    | Not running. Execution has completed or the process was killed |
 
 Transitions are linear and one-way:
 
-```
+```text
 queued → running → idle
 ```
 
@@ -359,20 +358,20 @@ A process begins in `queued` the moment it is created. Once it reaches `idle` it
 
 Status records the outcome of a completed execution and is only set once a process reaches `idle`:
 
-| Status | Meaning |
-|---|---|
-| `null` | Process has not yet completed |
-| `success` | Process completed without error |
-| `failed` | Process encountered an error or was killed |
+| Status    | Meaning                                    |
+| --------- | ------------------------------------------ |
+| `null`    | Process has not yet completed              |
+| `success` | Process completed without error            |
+| `failed`  | Process encountered an error or was killed |
 
 The combination of state and status fully describes a process's position in its lifecycle:
 
-| State | Status | Meaning |
-|---|---|---|
-| `queued` | `null` | Waiting for sandbox |
-| `running` | `null` | Actively executing |
-| `idle` | `success` | Completed successfully |
-| `idle` | `failed` | Completed with failure or was killed |
+| State     | Status    | Meaning                              |
+| --------- | --------- | ------------------------------------ |
+| `queued`  | `null`    | Waiting for sandbox                  |
+| `running` | `null`    | Actively executing                   |
+| `idle`    | `success` | Completed successfully               |
+| `idle`    | `failed`  | Completed with failure or was killed |
 
 ---
 
@@ -402,17 +401,17 @@ interface KillSignalResponse {
 
 Outputs are scoped to processes and do not require execution to be complete — partial results may be available while a process is still running.
 
-| Endpoint | Returns |
-|---|---|
+| Endpoint                     | Returns                                   |
+| ---------------------------- | ----------------------------------------- |
 | `GET /processes/:pid/output` | The custom output value set by the intent |
-| `GET /processes/:pid/stdout` | Standard output as plain text |
-| `GET /processes/:pid/stderr` | Standard error as plain text |
+| `GET /processes/:pid/stdout` | Standard output as plain text             |
+| `GET /processes/:pid/stderr` | Standard error as plain text              |
 
 ### Output
 
 The output of a process is a custom value set by a function call made within the intent code. It is not stdout or stderr — it is a structured value explicitly produced by the intent. Its shape is entirely determined by what the intent sets.
 
-**`GET /processes/:pid/output` response:**
+**`GET /processes/:pid/output response:`**
 
 ```ts
 interface GetOutputResponse {
@@ -449,3 +448,6 @@ Outputs are cache-managed alongside their process and evicted together. If long-
 **Environment resolution is the client's responsibility.** The `environment` field must be provided by the client. When using the recommended code block convention, the language identifier is the natural source for this value.
 
 **Session-scoped templates do not survive server restarts.** If templates need to persist, `save` must be set to `true` at creation time. This cannot be changed after creation.
+
+```text
+```
