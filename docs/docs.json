@@ -20,38 +20,35 @@
               {
                 "group": "Overview",
                 "pages": [
-                  "server/introduction",
-                  "server/faq",
-                  "server/comparison"
+                  "mci/docs/introduction",
+                  "mci/docs/faq",
+                  "mci/docs/comparison"
                 ]
               },
               {
                 "group": "About MCI",
-                "pages": [
-                  "server/architecture",
-                  "server/transport"
-                ]
+                "pages": ["mci/docs/architecture", "mci/docs/transport"]
               },
               {
                 "group": "Processes",
                 "pages": [
-                  "server/process-overview",
-                  "server/process-access-and-control"
+                  "mci/docs/process-overview",
+                  "mci/docs/process-access-and-control"
                 ]
               },
               {
                 "group": "Modules",
                 "pages": [
-                  "server/module-overview",
-                  "server/module-access-and-control"
+                  "mci/docs/module-overview",
+                  "mci/docs/module-access-and-control"
                 ]
               },
               {
                 "group": "Definitions",
                 "pages": [
-                  "server/definition-overview",
-                  "server/definition-lifecycle",
-                  "server/definition-access-and-control"
+                  "mci/docs/definition-overview",
+                  "mci/docs/definition-lifecycle",
+                  "mci/docs/definition-access-and-control"
                 ]
               }
             ]
@@ -61,11 +58,9 @@
             "pages": [
               {
                 "group": "Getting Started",
-                "pages": [
-                  "specification"
-                ]
+                "pages": ["mci/specs/specification"]
               },
-              "client"
+              "mci/specs/client"
             ]
           }
         ]
