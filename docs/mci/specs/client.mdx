@@ -43,7 +43,7 @@ The model outputs a fenced code block with three parts on the opening line:
 ```ts mci name=fetch-user description="Fetch a user by ID" environment=deno
 const res = await fetch("https://api.example.com/users/1");
 const user = await res.json();
-dispatch({ output: user });
+output(user);
 ```
 ~~~
 
@@ -63,7 +63,7 @@ MCI separates the definition of code from its execution. These are two distinct 
 
 A template is a definition — code and everything that describes it. Templates are inert. Creating a template does not execute anything. A template can exist indefinitely without ever being executed.
 
-Templates are mutable. The `code`, `environment`, `name`, and `description` fields can be updated at any time. The `lint` and `save` flags are **creation-only** — they are set when the template is created and cannot be changed afterwards. If different lint or save behaviour is needed, create a new template.
+Templates are mutable. The `code`, `environment`, `name`, and `description` fields can be updated at any time via `PATCH /templates/:tid`. The `lint` and `save` flags are **creation-only** — they are set when the template is created and cannot be changed afterwards. If different lint or save behaviour is needed, create a new template.
 
 ### Process
 
@@ -108,19 +108,18 @@ List all templates available in the current session, including persistent templa
 
 **Response:**
 
-```json
-{
-  "templates": [
-    {
-      "tid": "string",
-      "name": "string | null",
-      "description": "string | null",
-      "environment": "string",
-      "lint": "boolean",
-      "save": "boolean",
-      "created_at": "ISO 8601 timestamp"
-    }
-  ]
+```ts
+interface ListTemplatesResponse {
+  templates: {
+    tid: string
+    name: string | null
+    description: string | null
+    environment: string
+    lint: boolean
+    save: boolean
+    created_at: string // ISO 8601
+    updated_at: string // ISO 8601
+  }[]
 }
 ```
 
@@ -132,32 +131,45 @@ List all templates available in the current session, including persistent templa
 
 Create a new template. If `lint` is `true`, the code is linted before the template is saved. If linting fails, the template is not created and the lint output is returned instead.
 
-**Request body:**
+**Request:**
 
-| Field | Type | Required | Default | Description |
-|---|---|---|---|---|
-| `code` | string | yes | — | The code to be executed when a process is created from this template |
-| `environment` | string | yes | — | The target sandbox environment. Supports prefix matching (e.g. `python` matches all Python environments, `python3` matches only Python 3 environments) |
-| `name` | string | no | — | Human-readable name for querying and identification |
-| `description` | string | no | — | Human-readable description for querying and identification |
-| `lint` | boolean | no | `false` | **Creation-only.** If true, code is linted before saving. Lint failure prevents creation and returns lint output. Cannot be changed after creation |
-| `save` | boolean | no | `false` | **Creation-only.** If false, the template is session-scoped. If true, it persists across server restarts. Cannot be changed after creation |
+```ts
+interface CreateTemplateRequest {
+  code: string          // required
+  environment: string   // required
+  name?: string
+  description?: string
+  lint?: boolean        // default: false — creation-only, cannot be changed after creation
+  save?: boolean        // default: false — creation-only, cannot be changed after creation
+}
+```
+
+**Fields:**
+
+| Field | Required | Default | Description |
+|---|---|---|---|
+| `code` | yes | — | The code to be executed when a process is created from this template |
+| `environment` | yes | — | The target sandbox environment. Supports prefix matching (e.g. `python` matches all Python environments, `python3` matches only Python 3 environments) |
+| `name` | no | — | Human-readable name for querying and identification |
+| `description` | no | — | Human-readable description for querying and identification |
+| `lint` | no | `false` | **Creation-only.** If true, code is linted before saving. Lint failure prevents creation and returns lint output. Cannot be changed after creation |
+| `save` | no | `false` | **Creation-only.** If false, the template is session-scoped. If true, it persists across server restarts. Cannot be changed after creation |
 
 **Response (success):**
 
-```json
-{
-  "tid": "string",
-  "name": "string | null"
+```ts
+interface CreateTemplateResponse {
+  tid: string
+  name: string | null
 }
 ```
 
 **Response (lint failure):**
 
-```json
-{
-  "error": "lint_failed",
-  "output": "string"
+```ts
+interface LintFailureResponse {
+  error: "lint_failed"
+  output: string
 }
 ```
 
@@ -169,16 +181,17 @@ Retrieve a template's full definition including code.
 
 **Response:**
 
-```json
-{
-  "tid": "string",
-  "name": "string | null",
-  "description": "string | null",
-  "code": "string",
-  "environment": "string",
-  "lint": "boolean",
-  "save": "boolean",
-  "created_at": "ISO 8601 timestamp"
+```ts
+interface GetTemplateResponse {
+  tid: string
+  name: string | null
+  description: string | null
+  code: string
+  environment: string
+  lint: boolean
+  save: boolean
+  created_at: string // ISO 8601
+  updated_at: string // ISO 8601
 }
 ```
 
@@ -192,25 +205,25 @@ If the template was created with `lint: true` and the patch includes a `code` up
 
 Updates affect future processes only. Existing processes are independent snapshots and are completely unaffected by any template update — including patches to `code` or `environment` while a process is actively running.
 
-**Request body (all fields optional):**
+**Request:**
 
-```json
-{
-  "code": "string",
-  "environment": "string",
-  "name": "string",
-  "description": "string"
+```ts
+interface UpdateTemplateRequest {
+  code?: string
+  environment?: string
+  name?: string
+  description?: string
 }
 ```
 
-**Response (success):** Updated template object, same shape as `GET /templates/:tid`.
+**Response (success):** Full updated template object, same shape as `GET /templates/:tid`.
 
 **Response (lint failure):**
 
-```json
-{
-  "error": "lint_failed",
-  "output": "string"
+```ts
+interface LintFailureResponse {
+  error: "lint_failed"
+  output: string
 }
 ```
 
@@ -244,17 +257,15 @@ List all processes in the current session.
 
 **Response:**
 
-```json
-{
-  "processes": [
-    {
-      "pid": "string",
-      "tid": "string",
-      "state": "queued | running | idle",
-      "status": "success | failed | null",
-      "created_at": "ISO 8601 timestamp"
-    }
-  ]
+```ts
+interface ListProcessesResponse {
+  processes: {
+    pid: string
+    tid: string
+    state: "queued" | "running" | "idle"
+    status: "success" | "failed" | null
+    created_at: string // ISO 8601
+  }[]
 }
 ```
 
@@ -264,21 +275,32 @@ List all processes in the current session.
 
 Create a new process. The process is queued for execution immediately upon creation.
 
-**Request body:**
+**Request:**
 
-| Field | Type | Required | Default | Description |
-|---|---|---|---|---|
-| `tid` | string | yes | — | The TID of the template to execute |
-| `envconf` | object | no | `{}` | Arbitrary key-value configuration passed to the sandbox, such as memory limits or thread constraints |
-| `timeout` | number/null | no | `null` | Execution timeout in milliseconds. `null` means no timeout |
-| `retries` | number/null | no | `3` | Number of retry attempts on failure. `null` means no retries |
+```ts
+interface CreateProcessRequest {
+  tid: string             // required
+  envconf?: Record<string, unknown>  // default: {}
+  timeout?: number | null // default: null (no timeout)
+  retries?: number | null // default: 3
+}
+```
+
+**Fields:**
+
+| Field | Required | Default | Description |
+|---|---|---|---|
+| `tid` | yes | — | The TID of the template to execute |
+| `envconf` | no | `{}` | Arbitrary key-value configuration passed to the sandbox, such as memory limits or thread constraints |
+| `timeout` | no | `null` | Execution timeout in milliseconds. `null` means no timeout |
+| `retries` | no | `3` | Number of retry attempts on failure. `null` means no retries |
 
 **Response:**
 
-```json
-{
-  "pid": "string",
-  "tid": "string"
+```ts
+interface CreateProcessResponse {
+  pid: string
+  tid: string
 }
 ```
 
@@ -290,16 +312,16 @@ Retrieve the state and status of a process.
 
 **Response:**
 
-```json
-{
-  "pid": "string",
-  "tid": "string",
-  "state": "queued | running | idle",
-  "status": "success | failed | null",
-  "envconf": "object",
-  "timeout": "number | null",
-  "retries": "number | null",
-  "created_at": "ISO 8601 timestamp"
+```ts
+interface GetProcessResponse {
+  pid: string
+  tid: string
+  state: "queued" | "running" | "idle"
+  status: "success" | "failed" | null
+  envconf: Record<string, unknown>
+  timeout: number | null
+  retries: number | null
+  created_at: string // ISO 8601
 }
 ```
 
@@ -309,9 +331,9 @@ Retrieve the state and status of a process.
 
 ### `POST /processes/:pid/signals/:signal`
 
-Send a signal to a process. See [Signals](#signals) for valid signal names and constraints.
+Send a signal to a process. See the Signals section for valid signal names and constraints.
 
-**Request body:** `{}` (signals do not currently require a body)
+**Request:** `{}` (signals do not currently require a body)
 
 **Response:** Signal-dependent. See Signals section.
 
@@ -366,11 +388,11 @@ Stops a process that is currently running or queued. The process transitions to 
 
 **Response:**
 
-```json
-{
-  "pid": "string",
-  "state": "idle",
-  "status": "failed"
+```ts
+interface KillSignalResponse {
+  pid: string
+  state: "idle"
+  status: "failed"
 }
 ```
 
@@ -378,31 +400,39 @@ Stops a process that is currently running or queued. The process transitions to 
 
 ## Querying Outputs
 
-Outputs are scoped to processes and do not require execution to be complete — partial stdout and stderr may be available while a process is still running.
+Outputs are scoped to processes and do not require execution to be complete — partial results may be available while a process is still running.
 
 | Endpoint | Returns |
 |---|---|
-| `GET /processes/:pid/outputs` | All outputs as a structured object |
+| `GET /processes/:pid/output` | The custom output value set by the intent |
 | `GET /processes/:pid/stdout` | Standard output as plain text |
 | `GET /processes/:pid/stderr` | Standard error as plain text |
 
-**`GET /processes/:pid/outputs` response:**
+### Output
 
-```json
-{
-  "stdout": "string",
-  "stderr": "string",
-  "dispatches": []
+The output of a process is a custom value set by a function call made within the intent code. It is not stdout or stderr — it is a structured value explicitly produced by the intent. Its shape is entirely determined by what the intent sets.
+
+**`GET /processes/:pid/output` response:**
+
+```ts
+interface GetOutputResponse {
+  output: unknown // any value set by the intent
 }
 ```
 
-Outputs are cache-managed alongside their process and evicted together. If long-term output retention is needed, the client is responsible for reading and storing outputs before eviction.
+`output` is `null` if the intent did not set a value before the process completed.
+
+### stdout and stderr
+
+`GET /processes/:pid/stdout` and `GET /processes/:pid/stderr` return raw process streams as `text/plain`. These are independent of the output value.
+
+Outputs are cache-managed alongside their process and evicted together. If long-term retention is needed, the client is responsible for reading and storing outputs before eviction.
 
 ---
 
 ## Future Considerations
 
-**Snapshot inspection.** It would be useful for clients to query the exact code and metadata a process was created with, independently of whatever the source template currently looks like. A `GET /processes/:pid/snapshot` endpoint would serve this purpose and is a candidate for a future revision of this specification.
+**Snapshot inspection.** A `GET /processes/:pid/snapshot` endpoint would allow clients to query the exact code and metadata a process was created with, independently of whatever the source template currently looks like. This is a candidate for a future revision.
 
 ---
 
