@@ -27,11 +27,11 @@ How a client detects model intent is left to the implementer. The MCI project re
 
 The model outputs a fenced code block with three parts on the opening line:
 
-~~~text
+`````text
 ```<language> mci <key=value pairs>
 <code>
 ````
-~~~
+`````
 
 - `<language>` is any language identifier (e.g. `ts`, `python`, `js`)
 - `mci` is the intent marker — its presence signals that this block is an MCI execution request
@@ -39,12 +39,12 @@ The model outputs a fenced code block with three parts on the opening line:
 
 **Example:**
 
-```ts mci name=fetch-user description="Fetch a user by ID"
+```ts mci name=fetch-user
 const res = await fetch("https://api.example.com/users/1");
 const user = await res.json();
 
 dispatch({ output: user });
-`````
+```
 
 When a client sees the `mci` keyword after the language identifier, it treats the block as an execution request. The key-value pairs are parsed as template metadata. The body of the block is the code.
 
@@ -70,15 +70,15 @@ A process is an execution request against a template. Creating a process queues 
 
 A template can be the basis for multiple processes over time. A process always references exactly one template.
 
-### The Snapshot Contract
+<Note>
+  **This is the most important invariant in MCI.**
 
-> **This is the most important invariant in MCI.**
->
-> When a process is created, it takes a snapshot of the template at that exact moment — the code, environment, name, and description are copied into the process and stored independently. The process never references the live template again after this point.
->
-> This means updating or deleting a template has no effect on any process already created from it. A running process always completes against the code it was started with, regardless of what happens to its source template afterwards.
->
-> Every process is a fully self-contained execution record. Its `tid` field records which template it originated from, but it does not depend on that template continuing to exist or remain unchanged.
+  When a process is created, it takes a snapshot of the template at that exact moment — the code, environment, name, and description are copied into the process and stored independently. The process never references the live template again after this point.
+
+  This means updating or deleting a template has no effect on any process already created from it. A running process always completes against the code it was started with, regardless of what happens to its source template afterwards.
+
+  Every process is a fully self-contained execution record. Its tid field records which template it originated from, but it does not depend on that template continuing to exist or remain unchanged.
+</Note>
 
 ### Identifiers
 
@@ -99,11 +99,11 @@ List all templates available in the current session, including persistent templa
 
 **Query parameters (all optional):**
 
-| Parameter | Type | Description |
-|---|---|---|
-| `name` | string | Filter by name (exact match) |
-| `environment` | string | Filter by environment prefix |
-| `save` | boolean | `true` returns persistent templates only, `false` returns session-scoped only |
+| Parameter     | Type    | Description                                                                   |
+| ------------- | ------- | ----------------------------------------------------------------------------- |
+| `name`        | string  | Filter by name (exact match)                                                  |
+| `environment` | string  | Filter by environment prefix                                                  |
+| `save`        | boolean | `true` returns persistent templates only, `false` returns session-scoped only |
 
 **Response:**
 
@@ -120,7 +120,7 @@ interface ListTemplatesResponse {
     updated_at: string // ISO 8601
   }[]
 }
-`````
+```
 
 `code` is not included in list responses. Use `GET /templates/:tid` to retrieve the full template including code.
 
