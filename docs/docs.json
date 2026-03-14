@@ -57,7 +57,16 @@
             ]
           },
           {
-            "tab": "Specification"
+            "tab": "Specification",
+            "pages": [
+              {
+                "group": "Getting Started",
+                "pages": [
+                  "specification"
+                ]
+              },
+              "client"
+            ]
           }
         ]
       },

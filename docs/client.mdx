@@ -1,0 +1,200 @@
+---
+title: "Client"
+description: "How clients should interact with MCI"
+---
+
+## Overview
+
+This document specifies the communication details of requests sent from an client to an MCI server. It covers how clients may extract model output, structured to signal MCI execution intent, and the response of process execution with MCI.
+
+## Processes & Routines
+
+A process is simply code that the AI application intends on executing, either to obtain context or to interact with tools and services.
+
+Processes that are persistent (are saved and can be instantiated) can be referred to as routines.
+
+## 1. Process Annotation
+
+For a model to convey it's intents, it must be able to express it in such a way that
+
+1. **Identifiable**: Process execution intents must be distinguishable from regular markdown code block artifacts.
+2. **Expressive**: The intent expression must be able to convey metadata about how processes are going to be executed, this allows the model to determine to some extent, the manner in which tasks are executed.
+
+Example.
+
+````markdown
+```... {keyword} {metadata}
+{code}
+```
+````
+
+- `{keyword}` : A literal marker that identifies this block as an MCI-executable block.
+- `{metadata}` : A key-value dictionary of metadata describing / constraining processes.
+
+### 1.2 Metadata Fields
+
+The following fields may appear in the metadata string. All fields are optional unless noted.
+
+| Field         | Type      | Default | Requires | Description                                                                                                                                                                                                                     |
+| :------------ | :-------- | :------ | -------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `name`        | `string`  | `null`  | `false`  | A human-readable identifier for this code block. Used as the filename when saving.                                                                                                                                              |
+| `description` | `string`  | `null`  | `false`  | A short description of what this code block does. Surfaced in client UIs and logs.                                                                                                                                              |
+| `run`         | `boolean` | `true`  | `false`  | Whether the MCI server should execute this block immediately upon receipt.                                                                                                                                                      |
+| `lint`        | `boolean` | `false` | `false`  | Whether the MCI server should lint/type-check this block before execution.                                                                                                                                                      |
+| `save`        | `boolean` | `false` | `false`  | Whether this block should be persisted to MCI-controlled storage after execution.                                                                                                                                               |
+| `environment` | `string`  | `null`  | `true`   | The name of a pre-configured environment to execute this block in (e.g. `"staging"`, `"production"`). Must match an environment defined in the MCI config. If omitted, the MCI server's default environment is used.            |
+| `env_config`  | `string`  | `false` | `false`  | A URL-encoded JSON object of key-value pairs to inject as environment variables into the sandbox at runtime. These are merged on top of the selected environment's variables, with `env_config` taking precedence on conflicts. |
+
+## 2. Client-to-Server Request
+
+When a client detects an MCI block in model output, it constructs a request and sends it to the MCI server.
+
+### 2.1 Endpoint
+
+```text
+POST /v1/process
+```
+
+### 2.3 Request Body
+
+```text
+{
+  // The programming language of the code block. Required.
+  "language": "typescript",
+
+  // The raw source code extracted from the block. Required.
+  "code": "const response = await fetch(...)",
+
+  // Execution directives derived from the block metadata.
+  "directives": {
+    "run": true,
+    "lint": false,
+    "save": false
+  },
+
+  // Optional block identity and documentation metadata.
+  "meta": {
+    "name": "fetch-playlist",
+    "description": "Fetches the current user's Spotify playlists."
+  },
+
+  // The name of the pre-configured environment to target.
+  // Null means use the MCI server default.
+  "environment": "staging",
+
+  // Inline environment variable overrides injected at sandbox runtime.
+  // These take precedence over the named environment's variables.
+  "env_config": {
+    "SPOTIFY_TOKEN": "abc123"
+  },
+
+  // Client-provided context. Contents are defined by the client implementation.
+  // MCI servers must not rely on this field for execution decisions.
+  "client_context": {
+    "client_id": "my-mci-client",
+    "client_version": "1.0.0",
+    "session_id": "a1b2c3"
+  }
+}
+```
+
+### 2.4 Field Reference
+
+| Field              | Type      | Required | Description                                                                   |                                                                           |
+| :----------------- | :-------- | :------- | :---------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `language`         | `string`  | Yes      | Language identifier for the sandbox runner (e.g. `"typescript"`, `"python"`). |                                                                           |
+| `code`             | `string`  | Yes      | The raw source code to be processed.                                          |                                                                           |
+| `directives.run`   | `boolean` | Yes      | Whether to execute the code.                                                  |                                                                           |
+| `directives.lint`  | `boolean` | Yes      | Whether to lint/type-check the code.                                          |                                                                           |
+| `directives.save`  | `boolean` | Yes      | Whether to persist the code to MCI-managed storage.                           |                                                                           |
+| `meta.name`        | \`string  | null\`   | No                                                                            | Identifier for the block. Used as filename if `save` is true.             |
+| `meta.description` | \`string  | null\`   | No                                                                            | Human-readable description of the block's purpose.                        |
+| `environment`      | \`string  | null\`   | No                                                                            | Named environment to use. Falls back to server default if null.           |
+| `env_config`       | \`object  | null\`   | No                                                                            | Key-value environment variable overrides injected into the sandbox.       |
+| `client_context`   | \`object  | null\`   | No                                                                            | Arbitrary client metadata. Ignored by the MCI server for execution logic. |
+
+---
+
+## 3. Server Response Envelope
+
+The MCI server responds synchronously with an envelope indicating the outcome of the request. Long-running executions may use streaming or webhooks — those patterns are defined in a separate spec.
+
+### 3.1 Success Response
+
+**Status:** `200 OK`
+
+```text
+{
+  "status": "ok",
+
+  // A unique identifier for this execution request.
+  "execution_id": "exec_01j9z...",
+
+  // Which directives were actually applied (may differ from request if
+  // the server overrode or skipped a directive).
+  "applied_directives": {
+    "run": true,
+    "lint": false,
+    "save": false
+  },
+
+  // Present if run=true. Contains execution output.
+  "execution": {
+    "stdout": "...",
+    "stderr": "",
+    "exit_code": 0,
+    "duration_ms": 142
+  },
+
+  // Present if lint=true.
+  "lint": {
+    "passed": true,
+    "diagnostics": []
+  },
+
+  // Present if save=true.
+  "saved": {
+    "path": "/mci/storage/fetch-playlist.ts"
+  },
+
+  // Dispatches fired during execution, in order.
+  "dispatches": [
+    {
+      "dispatch_id": "dsp_7f3a...",
+      "event": "spotify.playlists.list",
+      "status": "resolved",
+      "duration_ms": 88
+    }
+  ]
+}
+```
+
+### 3.2 Error Response
+
+**Status:** `400` / `422` / `500` (as appropriate)
+
+```text
+{
+  "status": "error",
+  "error": {
+    // A stable machine-readable error code.
+    "code": "ENVIRONMENT_NOT_FOUND",
+    // A human-readable message.
+    "message": "No environment named 'staging' is configured on this MCI server.",
+    // Optional: which request field caused the error.
+    "field": "environment"
+  }
+}
+```
+
+### 3.3 Standard Error Codes
+
+| Code                    | HTTP Status | Description                                                          |
+| :---------------------- | :---------- | :------------------------------------------------------------------- |
+| `INVALID_REQUEST`       | 400         | Malformed request body or missing required fields.                   |
+| `UNSUPPORTED_LANGUAGE`  | 422         | No sandbox module is available for the requested language.           |
+| `ENVIRONMENT_NOT_FOUND` | 422         | The named environment does not exist in MCI config.                  |
+| `LINT_FAILED`           | 422         | `lint=true` and the code did not pass. Execution is not attempted.   |
+| `EXECUTION_FAILED`      | 500         | The sandbox ran the code but it exited with a non-zero code.         |
+| `DISPATCH_FAILED`       | 500         | A dispatch fired but the proxy could not reach the external service. |
+| `SERVER_ERROR`          | 500         | An internal MCI server error unrelated to the code or request.       |
