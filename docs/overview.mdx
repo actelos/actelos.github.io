@@ -5,6 +5,8 @@ description: "How AI clients may interact with MCI"
 
 The MCI client wraps a large language model (LLM) and bridges the model's expressed intent to the MCI server. The client detects when the model wants to execute code, submits that code to MCI, and returns the result back to the model.
 
+---
+
 ## Intent Extraction
 
 The client monitors model output and detects when the model is expressing an intent to execute code. How detection works is implementation-defined.
@@ -27,6 +29,8 @@ The client detects the code block with the `exec` attribute and extracts the bod
 
   The convention does not affect how requests are submitted to MCI.
 </Note>
+
+---
 
 ## Process Execution
 
@@ -51,6 +55,8 @@ interface CreateProcessResponse {
 
 </CodeGroup>
 
+---
+
 ## Process Queries
 
 A client connected to an MCI server can query a process or list of processes in the current session in order to track their state and status.
@@ -64,6 +70,8 @@ interface GetProcessResponse {
 ```
 
 `state` is the stage of the process lifecycle the process is currently at, and `status` is the execution outcome. `status` is `null` while the process has not yet completed.
+
+---
 
 ## Process Outputs
 
@@ -86,6 +94,8 @@ Plain text output captured from the standard output buffer stream of the process
 ### Stderr
 
 Plain text output captured from the standard error buffer stream of the process execution.
+
+---
 
 ## Signals
 
@@ -126,6 +136,8 @@ interface RunSignalResponse {
 
 </CodeGroup>
 
+---
+
 ## Process Life-cycle
 
 ```mermaid
@@ -154,6 +166,8 @@ A process starts in `queued` the moment it is created and transitions linearly t
 | `idle`    | `success`  | Completed successfully                     |
 | `idle`    | `failed`   | Completed with an error                    |
 | `idle`    | `canceled` | Prematurely terminated via the kill signal |
+
+---
 
 ## Response Feedback Pipeline
 
