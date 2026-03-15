@@ -35,7 +35,7 @@
               {
                 "group": "Clients",
                 "pages": [
-                  "overview"
+                  "client-overview"
                 ]
               }
             ]
