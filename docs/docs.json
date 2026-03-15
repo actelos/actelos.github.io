@@ -27,40 +27,11 @@
               },
               {
                 "group": "About MCI",
-                "pages": ["mci/docs/architecture", "mci/docs/transport"]
-              },
-              {
-                "group": "Processes",
                 "pages": [
-                  "mci/docs/process-overview",
-                  "mci/docs/process-access-and-control"
-                ]
-              },
-              {
-                "group": "Modules",
-                "pages": [
-                  "mci/docs/module-overview",
-                  "mci/docs/module-access-and-control"
-                ]
-              },
-              {
-                "group": "Definitions",
-                "pages": [
-                  "mci/docs/definition-overview",
-                  "mci/docs/definition-lifecycle",
-                  "mci/docs/definition-access-and-control"
+                  "mci/docs/architecture",
+                  "mci/docs/transport"
                 ]
               }
-            ]
-          },
-          {
-            "tab": "Specification",
-            "pages": [
-              {
-                "group": "Getting Started",
-                "pages": ["mci/specs/specification"]
-              },
-              "mci/specs/client"
             ]
           }
         ]
