@@ -3,7 +3,7 @@
   "info": {
     "title": "MCI (Model Code Interface)",
     "version": "0.1.0",
-    "description": "MCI (Model Control Interface) is an open-source ecosystem of software that enables fast, reliable, secure, and efficient integration between LLM applications and external services.\n"
+    "description": "MCI (Model Control Interface) is an open-source ecosystem of software that enables fast, reliable, secure, and efficient integration between LLM applications and external services."
   },
   "servers": [
     {
@@ -22,7 +22,7 @@
       "get": {
         "operationId": "listProcesses",
         "summary": "List processes",
-        "description": "Returns a list of all processes, optionally filtered by `state` and/or\n`status`. Filters are ANDed together when both are provided — e.g.\n`state=idle&status=failed` returns only processes that are idle *and*\nfailed.\n",
+        "description": "Returns a list of all processes.",
         "tags": [
           "Processes"
         ],
@@ -127,7 +127,7 @@
       "post": {
         "operationId": "createProcess",
         "summary": "Submit code for execution",
-        "description": "Creates a new process, queues it, and begins execution immediately.\nReturns the process ID (`pid`) used for all subsequent interactions.\n",
+        "description": "Creates a new process and queues it for execution.",
         "tags": [
           "Processes"
         ],
@@ -183,7 +183,7 @@
       "get": {
         "operationId": "getProcess",
         "summary": "Get process state and status",
-        "description": "Returns the current state and status of a process. Poll this endpoint\nto track progress. A process is complete when `state` is `idle` and\n`status` is non-null.\n",
+        "description": "Returns the current state and status of a process.",
         "tags": [
           "Processes"
         ],
@@ -255,7 +255,7 @@
       "get": {
         "operationId": "getProcessOutput",
         "summary": "Get structured output",
-        "description": "Returns the structured value explicitly set by the intent code via the\n`output()` function. This is the primary channel fed back to the model.\nOnly available once the process reaches `idle` with a `success` status.\n",
+        "description": "Returns putput explicitly set by the intent code.",
         "tags": [
           "Processes"
         ],
@@ -300,7 +300,7 @@
       "get": {
         "operationId": "getProcessStdout",
         "summary": "Get raw stdout",
-        "description": "Returns the raw standard output stream of the process as plain text.\nUseful for debugging. Available once the process is `idle`.\n",
+        "description": "Returns the raw standard output stream of the process as plain text.",
         "tags": [
           "Processes"
         ],
@@ -336,7 +336,7 @@
       "get": {
         "operationId": "getProcessStderr",
         "summary": "Get raw stderr",
-        "description": "Returns the raw standard error stream of the process as plain text.\nUseful for debugging. Available once the process is `idle`.\n",
+        "description": "Returns the raw standard error stream of the process as plain text.",
         "tags": [
           "Processes"
         ],
@@ -372,7 +372,7 @@
       "post": {
         "operationId": "killProcess",
         "summary": "Send kill signal",
-        "description": "Stops a `queued` or `running` process. The process transitions to `idle`\nwith a `canceled` status. Outputs captured up to the point of\ncancellation are preserved.\n",
+        "description": "Stops a `queued` or `running` process.",
         "tags": [
           "Processes"
         ],
@@ -447,7 +447,7 @@
       "post": {
         "operationId": "runProcess",
         "summary": "Send run signal",
-        "description": "Re-queues an `idle` process for execution. Works on canceled processes\nas well as successfully completed ones. If the process already has\noutputs, `force: true` must be set to explicitly overwrite them.\n",
+        "description": "Re-queues an `idle` process for execution. Works on canceled processes as well as successfully completed ones. If the process is complete, `force: true` must be set to explicitly overwrite run and overwrite outputs.",
         "tags": [
           "Processes"
         ],
@@ -557,7 +557,7 @@
         "name": "state",
         "in": "query",
         "required": false,
-        "description": "Filter processes by life-cycle state. When combined with `status`,\nboth filters are applied together (AND).\n",
+        "description": "Filter processes by life-cycle state.",
         "schema": {
           "$ref": "#/components/schemas/ProcessState"
         }
@@ -566,7 +566,7 @@
         "name": "status",
         "in": "query",
         "required": false,
-        "description": "Filter processes by execution outcome. When combined with `state`,\nboth filters are applied together (AND). Note that `queued` and\n`running` processes always have a `null` status, so combining\n`status=success` with `state=queued` will always return an empty list.\n",
+        "description": "Filter processes by execution outcome.",
         "schema": {
           "$ref": "#/components/schemas/ProcessStatus"
         }
@@ -580,7 +580,7 @@
           "running",
           "idle"
         ],
-        "description": "Where the process is in its life-cycle.\n- `queued` — waiting for the sandbox to become available.\n- `running` — actively executing.\n- `idle` — execution has ended (see `status` for outcome).\n"
+        "description": "Where the process is in its life-cycle."
       },
       "ProcessStatus": {
         "type": [
@@ -593,7 +593,7 @@
           "canceled",
           null
         ],
-        "description": "The outcome of execution. Only set once the process reaches `idle`.\n- `null` — process has not yet completed.\n- `success` — completed without error.\n- `failed` — completed with an error.\n- `canceled` — terminated early via a kill signal.\n"
+        "description": "The outcome of execution."
       },
       "Process": {
         "type": "object",
@@ -670,7 +670,7 @@
         ],
         "properties": {
           "output": {
-            "description": "The structured value set by the intent code via `output()`.\nCan be any JSON-serializable value.\n"
+            "description": "The structured output values set by the intent code`. Can be any JSON-serializable value."
           }
         }
       },
@@ -680,7 +680,7 @@
           "force": {
             "type": "boolean",
             "default": false,
-            "description": "When `true`, overwrites any existing outputs from a prior execution.\nRequired if the process completed successfully and already has output.\n"
+            "description": "When `true`, overwrites any existing outputs from a prior execution. Required if the process completed successfully and already has output."
           }
         }
       },
