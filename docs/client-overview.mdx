@@ -1,150 +1,48 @@
 ---
 title: "Overview"
-description: "How AI clients may interact with MCI"
+description: "How clients work with MCI"
 ---
 
-The MCI client wraps a large language model (LLM) and bridges the model's expressed intent to the MCI server. The client detects when the model wants to execute code, submits that code to MCI, and returns the result back to the model.
+At its core, MCI is simple. The model outputs code expressing an intent. A client detects that intent and submits the code to an MCI server. The server executes it and returns the result. The client feeds that result back to the model.
 
----
-
-## Intent Extraction
-
-The client monitors model output and detects when the model is expressing an intent to execute code. How detection works is implementation-defined.
-
-The MCI project recommends wrapping intent in a code block with an `exec` attribute.
-
-**Example:**
-
-````markdown
-```ts exec=true
-const res = await fetch("https://api.example.com/users/1");
-output(res.json());
-```
-````
-
-The client detects the code block with the `exec` attribute and extracts the body as the code to submit.
-
-<Note>
-  **Clients may use any other detection mechanism**
-
-  The convention does not affect how requests are submitted to MCI.
-</Note>
-
----
-
-## Process Execution
-
-Once the client has extracted the model's execution intent, it may submit an execution request to the MCI server. Once the code is submitted, the process is queued and run immediately.
-
-The response of the execution request is the `pid` of the created process.
-
-<CodeGroup>
-
-```typescript request
-interface CreateProcessRequest {
-  code: string
-}
+```mermaid
+flowchart LR
+    Model --> Client
+    Client --> Server
+    Server --> Client
+    Client --> Model
 ```
 
+Each step in this chain is deliberately decoupled. The model does not need to know how its code is executed. The client does not need to know what the code does. The server does not need to know what model produced it.
 
-```typescript response
-interface CreateProcessResponse {
-  pid: string
-}
-```
+## The client
 
-</CodeGroup>
+The client is the layer that wraps the model. It is responsible for three things: detecting when the model wants to execute code, submitting that code to MCI, and returning the result.
 
----
+## Processes
 
-## Process Queries
+A process is a single unit of execution in MCI. When a client submits code, MCI creates a process, queues it, and runs it. Every process has a state and a status.
 
-A client connected to an MCI server can query a process or list of processes in the current session in order to track their state and status.
+**State** is where the process is in its life-cycle:
 
-```typescript
-interface GetProcessResponse {
-  pid: string
-  state: "queued" | "running" | "idle"
-  status: null | "success" | "failed" | "canceled"
-}
-```
+- `queued`: waiting for the sandbox to become available
+- `running`: actively executing
+- `idle`: execution has ended
 
-`state` is the stage of the process life-cycle the process is currently at, and `status` is the execution outcome. `status` is `null` while the process has not yet completed.
+**Status** is the outcome of execution, set once the process reaches `idle`:
 
----
+- `null`: not yet complete
+- `success`: completed without error
+- `failed`: completed with an error
+- `canceled`: terminated early via a kill signal
 
-## Process Outputs
-
-When a process is running or complete, MCI registers a variety of process outputs which the client can query to observe the outcome of execution. These outputs are `output`, `stdout`, and `stderr`.
-
-### Output
-
-This is a custom value set explicitly within the model's intent code. It is distinct from `stdout` —unlike logs or print statements, this output is intentionally structured so that the context fed back to the model is exactly what the intent produced and nothing else.
-
-```typescript
-interface GetOutputResponse {
-  output: unknown // null | { ... }
-}
-```
-
-### Stdout
-
-Plain text output captured from the standard output buffer stream of the process execution. Includes print statements, logs, and any other writes to stdout.
-
-### Stderr
-
-Plain text output captured from the standard error buffer stream of the process execution.
-
----
-
-## Signals
-
-Signals are a way of controlling processes at different stages of their life-cycle.
-
-### Kill
-
-The kill signal stops the execution of a `queued` or `running` process, transitioning it to `idle` with a `canceled` status.
-
-```typescript
-interface KillSignalResponse {
-  pid: string
-  state: "idle"
-  status: "canceled"
-}
-```
-
-### Run
-
-The run signal queues an `idle` process for execution. This is primarily used to re-execute `canceled` processes but can also be used to re-execute completed processes. When re-executing a process that has prior outputs, `force` must be set to `true` to overwrite them.
-
-<CodeGroup>
-
-```typescript request
-interface RunSignalRequest {
-  force: boolean // force overwrites existing process outputs
-}
-```
-
-
-```typescript response
-interface RunSignalResponse {
-  pid: string
-  state: "queued"
-  status: null
-}
-```
-
-</CodeGroup>
-
----
-
-## Process Life-cycle
+## Process life-cycle
 
 ```mermaid
 stateDiagram-v2
     direction TB
 
-    [*] --> queued
+    [*] --> queued : POST /processes
 
     queued --> running : sandbox available
     running --> idle : execution ends
@@ -157,7 +55,7 @@ stateDiagram-v2
     idle --> [*]
 ```
 
-A process starts in `queued` the moment it is created and transitions linearly to `running` then `idle`. From `idle`, a process can be re-queued via the run signal, allowing canceled or completed processes to be executed again.
+A process moves linearly from `queued` to `running` to `idle`. From `idle`, a process can be re-queued via the run signal — allowing canceled or completed processes to be executed again.
 
 | State     | Status     | Meaning                                    |
 | :-------- | :--------- | :----------------------------------------- |
@@ -167,8 +65,27 @@ A process starts in `queued` the moment it is created and transitions linearly t
 | `idle`    | `failed`   | Completed with an error                    |
 | `idle`    | `canceled` | Prematurely terminated via the kill signal |
 
----
+## Intent extraction
 
-## Response Feedback Pipeline
+The client monitors model output and detects when the model is expressing an intent to execute code. How detection works is implementation-defined.
 
-Once a process has been executed, the client may take the process output and feed it back to the model as context. This step is also implementation-defined. Responses may be polled and queued, or handled synchronously — the approach is left to the implementer.
+The MCI project recommends wrapping intent in a code block with an `exec` attribute:
+
+````markdown
+```ts exec=true
+const res = await fetch("https://api.example.com/users/1");
+output(res.json());
+```
+````
+
+When the client sees a code block with `exec=true`, it treats the block body as the code to submit. Any other attributes on the block can be used as metadata by your implementation.
+
+<Note>
+  **Detection is implementation-defined**
+
+  You are not required to use code blocks. XML tags, structured JSON, a system prompt convention — any mechanism that reliably extracts the code is valid. What matters is that the right code reaches the MCI server.
+</Note>
+
+## Response pipe
+
+Onece the process has been executed, the client would have to send the output back to the model as context. How that is done depends on client implementation.
