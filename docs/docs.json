@@ -42,7 +42,8 @@
             ]
           },
           {
-            "tab": "API Reference"
+            "tab": "API Reference",
+            "openapi": "https://modelcontrolinterface.mintlify.app/openapi.json"
           }
         ]
       },
