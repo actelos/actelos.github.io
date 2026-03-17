@@ -23,15 +23,16 @@
         "operationId": "listProcesses",
         "summary": "List processes",
         "description": "Returns a list of all processes.",
-        "tags": [
-          "Processes"
-        ],
+        "tags": ["Processes"],
         "parameters": [
           {
             "$ref": "#/components/parameters/stateFilter"
           },
           {
             "$ref": "#/components/parameters/statusFilter"
+          },
+          {
+            "$ref": "#/components/parameters/refFilter"
           }
         ],
         "responses": {
@@ -48,17 +49,17 @@
                     "value": {
                       "processes": [
                         {
-                          "pid": "proc_01j9z8k2v4f3g5h7m0n1p6q",
+                          "pid": "1",
                           "state": "idle",
                           "status": "success"
                         },
                         {
-                          "pid": "proc_01j9z8k2v4f3g5h7m0n1p6r",
+                          "pid": "2",
                           "state": "running",
                           "status": null
                         },
                         {
-                          "pid": "proc_01j9z8k2v4f3g5h7m0n1p6s",
+                          "pid": "3",
                           "state": "queued",
                           "status": null
                         }
@@ -70,12 +71,12 @@
                     "value": {
                       "processes": [
                         {
-                          "pid": "proc_01j9z8k2v4f3g5h7m0n1p6q",
+                          "pid": "1",
                           "state": "idle",
                           "status": "success"
                         },
                         {
-                          "pid": "proc_01j9z8k2v4f3g5h7m0n1p6t",
+                          "pid": "4",
                           "state": "idle",
                           "status": "canceled"
                         }
@@ -87,7 +88,7 @@
                     "value": {
                       "processes": [
                         {
-                          "pid": "proc_01j9z8k2v4f3g5h7m0n1p6u",
+                          "pid": "5",
                           "state": "idle",
                           "status": "failed"
                         }
@@ -128,9 +129,7 @@
         "operationId": "createProcess",
         "summary": "Submit code for execution",
         "description": "Creates a new process and queues it for execution.",
-        "tags": [
-          "Processes"
-        ],
+        "tags": ["Processes"],
         "requestBody": {
           "required": true,
           "content": {
@@ -161,7 +160,7 @@
                   "created": {
                     "summary": "Newly created process",
                     "value": {
-                      "pid": "proc_01j9z8k2v4f3g5h7m0n1p6q"
+                      "pid": "1"
                     }
                   }
                 }
@@ -184,9 +183,7 @@
         "operationId": "getProcess",
         "summary": "Get process state and status",
         "description": "Returns the current state and status of a process.",
-        "tags": [
-          "Processes"
-        ],
+        "tags": ["Processes"],
         "responses": {
           "200": {
             "description": "Process found.",
@@ -199,7 +196,7 @@
                   "queued": {
                     "summary": "Waiting for sandbox",
                     "value": {
-                      "pid": "proc_01j9z8k2v4f3g5h7m0n1p6q",
+                      "pid": "1",
                       "state": "queued",
                       "status": null
                     }
@@ -207,7 +204,7 @@
                   "running": {
                     "summary": "Actively executing",
                     "value": {
-                      "pid": "proc_01j9z8k2v4f3g5h7m0n1p6q",
+                      "pid": "1",
                       "state": "running",
                       "status": null
                     }
@@ -215,7 +212,7 @@
                   "success": {
                     "summary": "Completed successfully",
                     "value": {
-                      "pid": "proc_01j9z8k2v4f3g5h7m0n1p6q",
+                      "pid": "1",
                       "state": "idle",
                       "status": "success"
                     }
@@ -223,7 +220,7 @@
                   "failed": {
                     "summary": "Completed with an error",
                     "value": {
-                      "pid": "proc_01j9z8k2v4f3g5h7m0n1p6q",
+                      "pid": "1",
                       "state": "idle",
                       "status": "failed"
                     }
@@ -231,7 +228,7 @@
                   "canceled": {
                     "summary": "Terminated via kill signal",
                     "value": {
-                      "pid": "proc_01j9z8k2v4f3g5h7m0n1p6q",
+                      "pid": "1",
                       "state": "idle",
                       "status": "canceled"
                     }
@@ -256,9 +253,7 @@
         "operationId": "getProcessOutput",
         "summary": "Get structured output",
         "description": "Returns putput explicitly set by the intent code.",
-        "tags": [
-          "Processes"
-        ],
+        "tags": ["Processes"],
         "responses": {
           "200": {
             "description": "Output retrieved.",
@@ -301,9 +296,7 @@
         "operationId": "getProcessStdout",
         "summary": "Get raw stdout",
         "description": "Returns the raw standard output stream of the process as plain text.",
-        "tags": [
-          "Processes"
-        ],
+        "tags": ["Processes"],
         "responses": {
           "200": {
             "description": "stdout stream content.",
@@ -311,9 +304,7 @@
               "text/plain": {
                 "schema": {
                   "type": "string",
-                  "examples": [
-                    "fetching user...\ndone\n"
-                  ]
+                  "examples": ["fetching user...\ndone\n"]
                 }
               }
             }
@@ -337,9 +328,7 @@
         "operationId": "getProcessStderr",
         "summary": "Get raw stderr",
         "description": "Returns the raw standard error stream of the process as plain text.",
-        "tags": [
-          "Processes"
-        ],
+        "tags": ["Processes"],
         "responses": {
           "200": {
             "description": "stderr stream content.",
@@ -347,9 +336,7 @@
               "text/plain": {
                 "schema": {
                   "type": "string",
-                  "examples": [
-                    "Error: connect ECONNREFUSED 127.0.0.1:5432\n"
-                  ]
+                  "examples": ["Error: connect ECONNREFUSED 127.0.0.1:5432\n"]
                 }
               }
             }
@@ -373,9 +360,7 @@
         "operationId": "killProcess",
         "summary": "Send kill signal",
         "description": "Stops a `queued` or `running` process.",
-        "tags": [
-          "Processes"
-        ],
+        "tags": ["Processes"],
         "requestBody": {
           "required": true,
           "content": {
@@ -405,7 +390,7 @@
                   "canceled": {
                     "summary": "Process successfully canceled",
                     "value": {
-                      "pid": "proc_01j9z8k2v4f3g5h7m0n1p6q",
+                      "pid": "1",
                       "state": "idle",
                       "status": "canceled"
                     }
@@ -448,9 +433,7 @@
         "operationId": "runProcess",
         "summary": "Send run signal",
         "description": "Re-queues an `idle` process for execution. Works on canceled processes as well as successfully completed ones. If the process is complete, `force: true` must be set to explicitly overwrite run and overwrite outputs.",
-        "tags": [
-          "Processes"
-        ],
+        "tags": ["Processes"],
         "requestBody": {
           "required": true,
           "content": {
@@ -487,7 +470,7 @@
                   "requeued": {
                     "summary": "Process re-queued",
                     "value": {
-                      "pid": "proc_01j9z8k2v4f3g5h7m0n1p6q",
+                      "pid": "1",
                       "state": "queued",
                       "status": null
                     }
@@ -548,9 +531,7 @@
         "description": "The process ID returned by `POST /processes`.",
         "schema": {
           "type": "string",
-          "examples": [
-            "proc_01j9z8k2v4f3g5h7m0n1p6q"
-          ]
+          "examples": ["1"]
         }
       },
       "stateFilter": {
@@ -570,59 +551,52 @@
         "schema": {
           "$ref": "#/components/schemas/ProcessStatus"
         }
+      },
+      "refFilter": {
+        "name": "ref",
+        "in": "query",
+        "required": false,
+        "description": "Filter processes by reference.",
+        "schema": {
+          "type": "string"
+        }
       }
     },
     "schemas": {
       "ProcessState": {
         "type": "string",
-        "enum": [
-          "queued",
-          "running",
-          "idle"
-        ],
+        "enum": ["queued", "running", "idle"],
         "description": "Where the process is in its life-cycle."
       },
       "ProcessStatus": {
-        "type": [
-          "string",
-          "null"
-        ],
-        "enum": [
-          "success",
-          "failed",
-          "canceled",
-          null
-        ],
+        "type": ["string", "null"],
+        "enum": ["success", "failed", "canceled", null],
         "description": "The outcome of execution."
       },
       "Process": {
         "type": "object",
-        "required": [
-          "pid",
-          "state",
-          "status"
-        ],
+        "required": ["pid", "state", "status"],
         "properties": {
           "pid": {
             "type": "string",
             "description": "Unique identifier for the process.",
-            "examples": [
-              "proc_01j9z8k2v4f3g5h7m0n1p6q"
-            ]
+            "examples": ["1"]
           },
           "state": {
             "$ref": "#/components/schemas/ProcessState"
           },
           "status": {
             "$ref": "#/components/schemas/ProcessStatus"
+          },
+          "ref": {
+            "type": ["string", "null"],
+            "description": "Client-provided reference identifying the source of the process."
           }
         }
       },
       "ProcessList": {
         "type": "object",
-        "required": [
-          "processes"
-        ],
+        "required": ["processes"],
         "properties": {
           "processes": {
             "type": "array",
@@ -635,9 +609,7 @@
       },
       "CreateProcessRequest": {
         "type": "object",
-        "required": [
-          "code"
-        ],
+        "required": ["code"],
         "properties": {
           "code": {
             "type": "string",
@@ -645,29 +617,27 @@
             "examples": [
               "const res = await fetch(\"https://api.example.com/users/1\");\noutput(res.json());\n"
             ]
+          },
+          "ref": {
+            "type": "string",
+            "description": "Reference used to identify context of the process."
           }
         }
       },
       "ProcessCreatedResponse": {
         "type": "object",
-        "required": [
-          "pid"
-        ],
+        "required": ["pid"],
         "properties": {
           "pid": {
             "type": "string",
             "description": "The ID of the newly created process.",
-            "examples": [
-              "proc_01j9z8k2v4f3g5h7m0n1p6q"
-            ]
+            "examples": ["1"]
           }
         }
       },
       "ProcessOutput": {
         "type": "object",
-        "required": [
-          "output"
-        ],
+        "required": ["output"],
         "properties": {
           "output": {
             "description": "The structured output values set by the intent code`. Can be any JSON-serializable value."
@@ -686,9 +656,7 @@
       },
       "Error": {
         "type": "object",
-        "required": [
-          "error"
-        ],
+        "required": ["error"],
         "properties": {
           "error": {
             "type": "string",
