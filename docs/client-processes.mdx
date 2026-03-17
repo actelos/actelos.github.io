@@ -7,11 +7,13 @@ description: "Processes and interacting with them"
 
 Submitting code to MCI is a single `POST /processes` request with the code as the body. MCI creates the process, queues it, and begins execution immediately. The response carries the `pid` which is used for all subsequent interaction with that process.
 
+An optional `ref` field can be passed to tag the process with a client-supplied identifier. This allows the client to look up processes by its own internal reference using the `ref` query parameter on `GET /processes`, useful for correlating processes back to whatever triggered them without tracking PIDs externally.
+
 ```typescript
 const response = await fetch("http://localhost:7687/processes", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ code: extractedCode })
+  body: JSON.stringify({ code: extractedCode, ref: "my-internal-ref" })
 })
 
 const { pid } = await response.json()
