@@ -241,6 +241,38 @@
             "$ref": "#/components/responses/NotFound"
           }
         }
+      },
+      "delete": {
+        "operationId": "deleteProcess",
+        "summary": "Delete a process",
+        "description": "Removes a process from the store and frees any associated resources.",
+        "tags": ["Processes"],
+        "responses": {
+          "204": {
+            "description": "Process successfully deleted."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "description": "Process is not idle and cannot be deleted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "notIdle": {
+                    "summary": "Process must be idle",
+                    "value": {
+                      "error": "Process must be idle before it can be deleted."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/processes/{pid}/output": {
