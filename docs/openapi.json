@@ -49,17 +49,17 @@
                     "value": {
                       "processes": [
                         {
-                          "pid": "1",
+                          "pid": 1,
                           "state": "idle",
                           "status": "success"
                         },
                         {
-                          "pid": "2",
+                          "pid": 2,
                           "state": "running",
                           "status": null
                         },
                         {
-                          "pid": "3",
+                          "pid": 3,
                           "state": "queued",
                           "status": null
                         }
@@ -71,12 +71,12 @@
                     "value": {
                       "processes": [
                         {
-                          "pid": "1",
+                          "pid": 1,
                           "state": "idle",
                           "status": "success"
                         },
                         {
-                          "pid": "4",
+                          "pid": 4,
                           "state": "idle",
                           "status": "canceled"
                         }
@@ -88,7 +88,7 @@
                     "value": {
                       "processes": [
                         {
-                          "pid": "5",
+                          "pid": 5,
                           "state": "idle",
                           "status": "failed"
                         }
@@ -160,7 +160,7 @@
                   "created": {
                     "summary": "Newly created process",
                     "value": {
-                      "pid": "1"
+                      "pid": 1
                     }
                   }
                 }
@@ -196,7 +196,7 @@
                   "queued": {
                     "summary": "Waiting for sandbox",
                     "value": {
-                      "pid": "1",
+                      "pid": 1,
                       "state": "queued",
                       "status": null
                     }
@@ -204,7 +204,7 @@
                   "running": {
                     "summary": "Actively executing",
                     "value": {
-                      "pid": "1",
+                      "pid": 1,
                       "state": "running",
                       "status": null
                     }
@@ -212,7 +212,7 @@
                   "success": {
                     "summary": "Completed successfully",
                     "value": {
-                      "pid": "1",
+                      "pid": 1,
                       "state": "idle",
                       "status": "success"
                     }
@@ -220,7 +220,7 @@
                   "failed": {
                     "summary": "Completed with an error",
                     "value": {
-                      "pid": "1",
+                      "pid": 1,
                       "state": "idle",
                       "status": "failed"
                     }
@@ -228,7 +228,7 @@
                   "canceled": {
                     "summary": "Terminated via kill signal",
                     "value": {
-                      "pid": "1",
+                      "pid": 1,
                       "state": "idle",
                       "status": "canceled"
                     }
@@ -390,7 +390,7 @@
                   "canceled": {
                     "summary": "Process successfully canceled",
                     "value": {
-                      "pid": "1",
+                      "pid": 1,
                       "state": "idle",
                       "status": "canceled"
                     }
@@ -470,7 +470,7 @@
                   "requeued": {
                     "summary": "Process re-queued",
                     "value": {
-                      "pid": "1",
+                      "pid": 1,
                       "state": "queued",
                       "status": null
                     }
@@ -530,8 +530,8 @@
         "required": true,
         "description": "The process ID returned by `POST /processes`.",
         "schema": {
-          "type": "string",
-          "examples": ["1"]
+          "type": "integer",
+          "examples": [1]
         }
       },
       "stateFilter": {
@@ -578,9 +578,9 @@
         "required": ["pid", "state", "status"],
         "properties": {
           "pid": {
-            "type": "string",
+            "type": "integer",
             "description": "Unique identifier for the process.",
-            "examples": ["1"]
+            "examples": [1]
           },
           "state": {
             "$ref": "#/components/schemas/ProcessState"
@@ -629,9 +629,9 @@
         "required": ["pid"],
         "properties": {
           "pid": {
-            "type": "string",
+            "type": "integer",
             "description": "The ID of the newly created process.",
-            "examples": ["1"]
+            "examples": [1]
           }
         }
       },
