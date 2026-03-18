@@ -81,3 +81,11 @@ await fetch(`http://localhost:7687/processes/${pid}/signals/run`, {
   body: JSON.stringify({ force: true })
 })
 ```
+
+A process can be freed entirely by sending a `DELETE /processes/:pid` request. This removes the process and all its outputs from the server. Freeing a process that is still running or queued is not permitted — it must be killed first.
+
+```typescript
+await fetch(`http://localhost:7687/processes/${pid}`, {
+  method: "DELETE"
+})
+```
