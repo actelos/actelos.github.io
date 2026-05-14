@@ -33,10 +33,12 @@
                 ]
               },
               {
-                "group": "Clients",
+                "group": "Core Concepts",
                 "pages": [
-                  "client-overview",
-                  "client-processes"
+                  "mci/docs/concepts-processes",
+                  "mci/docs/concepts-services",
+                  "mci/docs/concepts-tools",
+                  "mci/docs/concepts-modules"
                 ]
               }
             ]

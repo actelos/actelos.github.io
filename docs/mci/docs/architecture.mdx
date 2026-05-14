@@ -4,15 +4,11 @@ description: "A high-level description of the inner workings of MCI"
 sidebarTitle: "Architecture Overview"
 ---
 
-This document provides a comprehensive overview of the **Model Control
-Interface (MCI)**, covering its operational scope, core concepts, and
-structural design.
+This document provides a comprehensive overview of the **Model Control Interface (MCI)**, covering its operational scope, core concepts, and structural design.
 
 ## System Architecture
 
-MCI utilizes a centralized **Client-Proxy-Server** model. By acting as a
-unified gateway, it eliminates the need for AI applications to manage multiple
-complex integrations.
+MCI utilizes a centralized **Client-Proxy-Server** model. By acting as a unified gateway, it eliminates the need for AI applications to manage multiple complex integrations.
 
 ```mermaid
 graph LR
@@ -47,15 +43,11 @@ graph LR
 
 ### **The Client (AI Application)**
 
-Clients are the "consumers" of the architecture. An MCI client can be any
-interface, ranging from mobile apps to serverless functions, capable of
-receiving model output and executing HTTP requests.
+Clients are the "consumers" of the architecture. An MCI client can be any interface, ranging from mobile apps to serverless functions, capable of receiving model output and executing HTTP requests.
 
 ### **The Server (The Proxy)**
 
-The MCI Server is the central intelligence of the system. It acts as a
-**Reverse Proxy**, managing authentication, request transformation, and
-communication between the Client and the external environment.
+The MCI Server is the central intelligence of the system. It acts as a **Proxy**, managing authentication, request transformation, and communication between the Client and the external environment.
 
 ### **The Service (The Providers)**
 
@@ -67,102 +59,105 @@ These are the functional targets that perform specific tasks or store data.
 
 ## How It Works: The Execution Life-cycle
 
-**MCI** is the "brain" of the operation, It manages the environment and
-coordinates five distinct types of modules to process the request:
+**MCI** is the "brain" of the operation, It manages the environment and coordinates five distinct types of modules to process the request:
 
 | **Module Type** | **Primary Function** |
-| - | - |
-| **Sandbox**     | The secure, isolated environment (container/VM) where the script is executed. It mounts a shared directory for code and libraries. |
-| **Server**      | Acts as the reverse proxy to specific protocols (REST, GraphQL, gRPC). It receives requests from dispatches and relays them to the end service. |
-| **Interceptor** | Middleware functions that sit between the script and the service. Used for logging, security filtering, or request modification. |
-| **Hook**        | Event-driven peripherals. They inject external notifications (e.g., a GitHub Webhook) directly back to the model's context. |
-| **Language**    | Generates language specific libraries to be used by the model to execute actions in the sandbox. |
+| --- | --- |
+| **Environment** | The secure, isolated environment (container/VM) where the script is executed. |
+| **Adapter** | Acts as the proxy to specific protocols (REST, GraphQL, gRPC). It receives requests from dispatches and relays them to the end service. |
 
-### 0. Resolution
+### 0. Initialization
 
-When MCI is span up it caches and loads its modules in preparation for
-execution.
+**Module Pooling**: Environment and adapter modules are loaded into pools based on pooling settings. Pooling is done in order to cut down idle time for processes. The pooling process involves initializing an instance of the given module into a staging area, hydrating them and unstaging them.
 
-1. **Library Generation:** MCI loads all is client spec files. Client spec
-  files are documents tat specify a standard for communication between an MCI
-  server module and the end server. Examples of these are `OpenAPI`, `OpenRPC`,
-  `AsyncAPI` etc. MCI ten resolves active server modules that use the client
-  definition documents and passes the generated objects to the language
-  module which take these objects and generates a **temporary, read-only
-  library** representing available capabilities.
-2. **Mounting:** The script and generated libraries are placed into the
-  **Sandbox's** shared directory based on the language and the sandbox
-  environment definition.
+### 1. Staging & Hydration
 
-### 1. The Client (AI Application)
+The staging and hydration processes are constructively run every time a module is initialized or a change in a service is made. Hydration works differently for each pool-able module type.
 
-The process begins when an AI client receives a prompt. The AI client passes
-the prompt to the model which generates the AI’s response.
-
-- **Identification:** If the Model requires external context or action, it
-  generates a **specialized MCI code block** instead of a standard JSON tool
-  call.
-- **Transmission:** The Client identifies this block, extracts the script and
-  metadata, and transmits it to the **MCI Server** via HTTP.
+- Environment modules are hydrated when there is a change in a service or tool. whenever a change is detected, the diff of the changes are fed to the environment to update its internal duplicate of the service and re-generate bindings to interact with them from code.
+- Adapter modules are hydrated when there is a change to the services configuration or secrets. Just as with environment, the change diff is passed for the adapter to update its internal double of the data. This data would be used when a tool invoke is received for that service.
 
 ### 2. Execution
 
-Once the MCI receives the script:
+When MCI receives instruction to run a process, it takes the processes code and passed it to a free environment for execution as well as use metadata for the process like timeout and reference to decide how the process is run and how to identify the process.
 
-1. **Dispatch:** The Sandbox executes the code. When the script calls a
-  function (e.g. `mci.dispatch("shell.exec", { ... }, ...)`), the
-  request is routed through:
-  **Library** → **MCI Server** → **Interceptors** → **Server Module**.
-2. **The Return Trip:** The response follows the same path back, allowing the
-  script to either pipe the data into another action or return the final result
-  to the Client.
+The environment executes the code. When the script calls a function (e.g. `invoke.shell.exec({ ... })`), the request is routed to **MCI Server**, through any possible, **Interceptors** to the **adapter** and finally to the end server. The response follows the same path back, allowing the script to either pipe the data into another action or return the final result to the Client.
 
 ```mermaid
 sequenceDiagram
     autonumber
 
-    participant A as AI Client
+    participant C as Client
 
     box "MCI Runtime"
-        participant M as MCI (Manager)
-        participant L as Language Module
-        participant S as Sandbox
-        participant I as Interceptors
-        participant SM as Server Module
+        participant M as MCI Manager
+        participant EP as Environment Pool
+        participant AP as Adapter Pool
+        participant E as Environment
+        participant A as Adapter
     end
 
-    participant E as End Server (API / DB)
+    participant S as End Server
 
-    %% 0. Resolution Phase
-    Note over M: 0. Resolution (Startup Phase)
-    M->>M: Load & Cache Core Modules
-    M->>SM: Load Client Spec Files (OpenAPI / OpenRPC / AsyncAPI)
-    SM-->>M: Parsed Specs
-    M->>L: Resolve Capabilities
-    L-->>M: Generate Read-Only Libraries
-    M->>S: Prepare Sandbox Environment
+    %% Initialization
 
-    %% 1. Client Interaction
-    Note over A,M: 1. Client → Model → MCI
-    A->>A: Model Emits MCI Code Block
-    A->>M: Send Script + Metadata (HTTP)
+    Note over M,AP: 0. Initialization & Pooling
 
-    %% 2. Execution Phase
-    Note over M,S: 2. Execution
-    M->>S: Mount Script & Libraries
-    S->>S: Execute Script
+    M->>EP: Initialize Environment Pool
+    M->>AP: Initialize Adapter Pool
 
-    %% Dispatch Flow
-    S->>M: mci.dispatch(action, payload)
-    M->>I: Intercept Request
-    I->>SM: Forward to Server Module
-    SM->>E: Execute Protocol
-    E-->>SM: Response
-    SM-->>I: Return Data
-    I-->>M: Finalize Response
-    M-->>S: Return to Script
+    M->>E: Stage + Hydrate Environment
+    E-->>EP: Ready
 
-    %% Completion
-    S-->>M: Script Result
-    M-->>A: Return Output
+    M->>A: Stage + Hydrate Adapter
+    A-->>AP: Ready
+
+    %% Rehydration
+
+    Note over M,A: 1. Rehydration
+
+    alt Service / Tool Changed
+        M->>E: Send Service Diff
+        E->>E: Update Bindings
+    end
+
+    alt Config / Secret Changed
+        M->>A: Send Config Diff
+        A->>A: Update Runtime Config
+    end
+
+    %% Execution
+
+    Note over C,S: 2. Execution
+
+    C->>M: Run Process (Code + Metadata)
+
+    M->>EP: Request Free Environment
+    EP-->>M: Available Environment
+
+    M->>E: Execute Script
+
+    E->>M: invoke.function(...)
+
+    M->>AP: Request Adapter
+    AP-->>M: Available Adapter
+
+    M->>A: Forward Invocation
+    A->>S: Execute Request
+
+    S-->>A: Response
+    A-->>M: Response
+    M-->>E: Invocation Result
+
+    E-->>M: Final Result
+    M-->>C: Return Output
+
+    %% Shutdown
+
+    Note over M,AP: 3. Shutdown
+
+    M->>EP: Unstage Environments
+    M->>AP: Unstage Adapters
+
+    M->>M: Shutdown Runtime
 ```
