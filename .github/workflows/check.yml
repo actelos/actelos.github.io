@@ -1,16 +1,29 @@
 name: Check
+
 permissions:
   contents: read
 
 on:
   push:
     paths:
-      - "./"
+      - "src/**"
+      - "public/**"
+      - "astro.config.*"
+      - "tsconfig.json"
+      - "biome.json"
+      - "package.json"
+      - "pnpm-lock.yaml"
       - ".github/workflows/check.yml"
     branches: ["**"]
   pull_request:
     paths:
-      - "./"
+      - "src/**"
+      - "public/**"
+      - "astro.config.*"
+      - "tsconfig.json"
+      - "biome.json"
+      - "package.json"
+      - "pnpm-lock.yaml"
       - ".github/workflows/check.yml"
   workflow_dispatch:
 
@@ -19,7 +32,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
+  check:
+    name: Lint, Typecheck & Build
     runs-on: ubuntu-latest
     defaults:
       run:
