@@ -33,8 +33,8 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       katex:
-        specifier: ^0.16.28
-        version: 0.16.28
+        specifier: ^0.16.46
+        version: 0.16.46
       rehype-autolink-headings:
         specifier: ^7.1.0
         version: 7.1.0
@@ -907,6 +907,7 @@ packages:
 
   '@ungap/structured-clone@1.3.0':
     resolution: {integrity: sha512-WmoN8qaIAo7WTYWbAZuG8PYEhn5fkz7dZrqTBZ7dtt//lL2Gwms1IcnQ5yHqjDfX8Ft5j4YzDM23f87zBfDe9g==}
+    deprecated: Potential CWE-502 - Update to 1.3.1 or higher
 
   '@volar/kit@2.4.28':
     resolution: {integrity: sha512-cKX4vK9dtZvDRaAzeoUdaAJEew6IdxHNCRrdp5Kvcl6zZOqb6jTOfk3kXkIkG3T7oTFXguEMt5+9ptyqYR84Pg==}
@@ -1495,8 +1496,8 @@ packages:
   jsonc-parser@3.3.1:
     resolution: {integrity: sha512-HUgH65KyejrUFPvHFPbqOY0rsFip3Bo5wb4ngvdi1EpCYWUQDC5V+Y7mZws+DLkr4M//zQJoanu1SP+87Dv1oQ==}
 
-  katex@0.16.28:
-    resolution: {integrity: sha512-YHzO7721WbmAL6Ov1uzN/l5mY5WWWhJBSW+jq4tkfZfsxmo1hu6frS0EOswvjBUnWE6NtjEs48SFn5CQESRLZg==}
+  katex@0.16.46:
+    resolution: {integrity: sha512-WHy4Coo+bGZyH7NwJKHkS04YFsFcarWbAEOAC3EMndzdN6VSZqklLLIgfxzyaW9jDoeGYJX9SWbJPKpecox0Uw==}
     hasBin: true
 
   kleur@3.0.3:
@@ -2147,6 +2148,7 @@ packages:
   tar@7.5.7:
     resolution: {integrity: sha512-fov56fJiRuThVFXD6o6/Q354S7pnWMJIVlDBYijsTNx6jKSE4pvrDTs6lUnmGvNyfJwFQQwWy3owKz1ucIhveQ==}
     engines: {node: '>=18'}
+    deprecated: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
   tiny-inflate@1.0.3:
     resolution: {integrity: sha512-pkY1fj1cKHb2seWDy0B16HeWyczlJA9/WW3u3c4z/NiWDsO3DOU5D7nhTLE9CF0yXv/QZFY7sEJmj24dK+Rrqw==}
@@ -4065,7 +4067,7 @@ snapshots:
 
   jsonc-parser@3.3.1: {}
 
-  katex@0.16.28:
+  katex@0.16.46:
     dependencies:
       commander: 8.3.0
 
@@ -4416,7 +4418,7 @@ snapshots:
     dependencies:
       '@types/katex': 0.16.8
       devlop: 1.1.0
-      katex: 0.16.28
+      katex: 0.16.46
       micromark-factory-space: 2.0.1
       micromark-util-character: 2.1.1
       micromark-util-symbol: 2.0.1
@@ -4845,7 +4847,7 @@ snapshots:
       '@types/katex': 0.16.8
       hast-util-from-html-isomorphic: 2.0.0
       hast-util-to-text: 4.0.2
-      katex: 0.16.28
+      katex: 0.16.46
       unist-util-visit-parents: 6.0.2
       vfile: 6.0.3
 
