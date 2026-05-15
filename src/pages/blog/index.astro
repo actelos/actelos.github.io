@@ -2,11 +2,11 @@
 import { getCollection } from "astro:content";
 
 import BlogCard from "@components/BlogCard.astro";
-import PageLayout from "@layouts/PageLayout.astro";
 import NewsletterForm from "@components/NewsletterForm.astro";
+import PageLayout from "@layouts/PageLayout.astro";
 
 const blog = (await getCollection("blog"))
-  .filter(post => !post.data.draft)
+  .filter((post) => !post.data.draft)
   .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
 ---
 

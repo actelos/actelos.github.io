@@ -1,8 +1,8 @@
 @import url("https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap");
 @import "tailwindcss";
-@plugin "@tailwindcss/typography";
 @import "katex/dist/katex.min.css";
 @import "rehype-callouts/theme/obsidian";
+@plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -92,11 +92,11 @@ pre code {
   overflow-x: auto;
 }
 
-html.dark .astro-code {
-  background-color: var(--shiki-dark-bg) !important;
+html.dark pre.astro-code {
+  background-color: var(--shiki-dark-bg);
 }
-html.dark .astro-code span {
-  color: var(--shiki-dark) !important;
+html.dark pre.astro-code span {
+  color: var(--shiki-dark);
 }
 
 .heading-anchor {
