@@ -5,6 +5,7 @@
     "build": "astro build",
     "preview": "astro preview"
   },
+  "packageManager": "pnpm@10.30.3",
   "dependencies": {
     "@astrojs/mdx": "^4.3.13",
     "@astrojs/rss": "^4.0.15",

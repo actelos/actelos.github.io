@@ -15,7 +15,6 @@
           buildInputs = [
             pkgs.nodejs_25
             pkgs.nodePackages.pnpm
-            pkgs.nodePackages.typescript
           ];
         };
       }
